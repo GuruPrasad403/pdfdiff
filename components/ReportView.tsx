@@ -33,7 +33,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ project, onClose }) => {
 
       // Trigger file deletion on the backend to save storage!
       try {
-         await axios.delete(`http://localhost:5000/api/project/${project._id}/files`);
+         await axios.delete(`/api/project/${project._id}`);
       } catch(e) {
          console.error("Failed to delete backend files", e);
       }

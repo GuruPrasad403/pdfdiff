@@ -8,7 +8,7 @@ import { renderPageToImage } from './services/pdfUtils';
 import { extractAnnotations } from './services/pdfExtract';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 
 const App: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
