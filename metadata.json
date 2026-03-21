@@ -1,0 +1,5 @@
+{
+  "name": "PDFDiff - AI Feedback Verifier",
+  "description": "A MERN stack application to compare annotated feedback PDFs against new versions using Gemini AI to verify implementation status.",
+  "requestFramePermissions": []
+}
