@@ -98,11 +98,11 @@ const App: React.FC = () => {
 
         const { status, confidence, reason } = response.data;
 
-        setProject(prev => {
+        setProject((prev: Project | null) => {
             if (!prev) return null;
             return {
             ...prev,
-            annotations: prev.annotations.map(a => 
+            annotations: prev.annotations.map((a: Annotation) => 
                 a.id === annotationId 
                 ? { ...a, status, aiConfidence: confidence, aiReason: reason } 
                 : a
@@ -131,9 +131,9 @@ const App: React.FC = () => {
 
     // Create a list to iterate over, filtering only those that are PENDING 
     // AND contain the word "fixed" in either the main text or the replies.
-    const annotationsToVerify = project.annotations.filter(ann => {
+    const annotationsToVerify = project.annotations.filter((ann: Annotation) => {
         if (ann.status !== AnnotationStatus.PENDING) return false;
-        const allText = [ann.text, ...(ann.replies?.map(r => r.text) || [])].join(' ').toLowerCase();
+        const allText = [ann.text, ...(ann.replies?.map((r: any) => r.text) || [])].join(' ').toLowerCase();
         return allText.includes('fixed');
     });
 

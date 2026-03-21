@@ -45,7 +45,7 @@ export const FeedbackList: React.FC<FeedbackListProps> = ({
   };
 
   const isVerifiable = (ann: Annotation) => {
-    const allText = [ann.text, ...(ann.replies?.map(r => r.text) || [])].join(' ').toLowerCase();
+    const allText = [ann.text, ...(ann.replies?.map((r: any) => r.text) || [])].join(' ').toLowerCase();
     return allText.includes('fixed');
   };
 
@@ -109,7 +109,7 @@ export const FeedbackList: React.FC<FeedbackListProps> = ({
               {/* Threaded Replies section */}
               {ann.replies && ann.replies.length > 0 && (
                 <div className="mb-3 space-y-2 border-l-2 border-indigo-200 pl-3 ml-1">
-                  {ann.replies.map(reply => (
+                  {ann.replies.map((reply: any) => (
                     <div key={reply.id} className="text-xs text-gray-700 bg-gray-50/80 p-2 rounded-md">
                       {(reply.author || reply.date) && (
                          <div className="flex justify-between items-center mb-1">
@@ -139,7 +139,7 @@ export const FeedbackList: React.FC<FeedbackListProps> = ({
                 <Button 
                   variant="outline" 
                   className="w-full text-xs py-1 h-7 border-gray-300" 
-                  onClick={(e) => {
+                  onClick={(e: any) => {
                     e.stopPropagation();
                     // Select logic first
                     onSelect(ann.pageNumber, ann.id);

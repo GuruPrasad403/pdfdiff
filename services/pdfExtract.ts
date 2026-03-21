@@ -1,15 +1,14 @@
-// Frontend Service for extracting annotations directly in the browser!
 import { PDFDocument } from 'pdf-lib';
-import { ExtractedAnnotation, ExtractedAnnotationReply } from '../types';
+import { Annotation, AnnotationReply, AnnotationStatus } from '../types';
 
-export const extractAnnotations = async (file: File): Promise<ExtractedAnnotation[]> => {
+export const extractAnnotations = async (file: File): Promise<Annotation[]> => {
   // Read file as ArrayBuffer in the browser
   const arrayBuffer = await file.arrayBuffer();
   
   // Load the PDF Document
   const pdfDoc = await PDFDocument.load(arrayBuffer);
   
-  const annotations: ExtractedAnnotation[] = [];
+  const annotations: Annotation[] = [];
   const pages = pdfDoc.getPages();
   const pdfHeight = pages[0].getHeight(); // Used for coordinate conversion if needed
 
@@ -86,7 +85,7 @@ export const extractAnnotations = async (file: File): Promise<ExtractedAnnotatio
       
       // Look for threaded replies pointing to this Parent Ref ID
       const repliesRaw = repliesMap.get(refId) || [];
-      const replies: ExtractedAnnotationReply[] = [];
+      const replies: AnnotationReply[] = [];
       
       for (const reply of repliesRaw) {
           const rDict = reply.dict;
@@ -124,7 +123,7 @@ export const extractAnnotations = async (file: File): Promise<ExtractedAnnotatio
         replies,
         rect,
         subtype,
-        status: 'PENDING'
+        status: AnnotationStatus.PENDING
       });
   }
 

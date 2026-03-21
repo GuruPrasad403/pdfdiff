@@ -82,7 +82,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ project, onClose }) => {
                <span>{ann.text}</span>
                {ann.replies && ann.replies.length > 0 && (
                  <p className="text-xs text-green-700 mt-1 italic">
-                   Thread: {ann.replies.map(r => r.text).join(' → ')}
+                   Thread: {ann.replies.map((r: any) => r.text).join(' → ')}
                  </p>
                )}
              </li>
@@ -114,7 +114,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ project, onClose }) => {
                    {ann.replies && ann.replies.length > 0 && (
                      <div className="mb-4 pl-3 border-l-2 border-red-200">
                        <p className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Conversation Thread</p>
-                       {ann.replies.map(r => (
+                       {ann.replies.map((r: any) => (
                          <div key={r.id} className="text-sm text-gray-700 mb-1">{r.author}: {r.text}</div>
                        ))}
                      </div>
