@@ -1,5 +1,5 @@
 import express from 'express';
-import { createProject, compareAnnotation, deleteProjectFiles } from '../controllers/projectController.ts';
+import { createProject, compareAnnotation, deleteProjectFiles } from '../controllers/projectController.js';
 
 const router = express.Router();
 

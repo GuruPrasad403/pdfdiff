@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import Project from '../models/Project.ts';
-import { extractAnnotations } from '../services/pdfService.ts';
-import { analyzeDifference } from '../services/aiService.ts';
+import Project from '../models/Project.js';
+import { analyzeDifference } from '../services/aiService.js';
 
 // Define a local interface to avoid Express namespace issues if types are missing
 interface MulterFile {
