@@ -53,6 +53,22 @@ export const renderPageToImage = async (
       context.fillStyle = 'rgba(255, 0, 0, 0.1)';
       context.fill();
 
+      const resizeCanvas = (sourceCanvas: HTMLCanvasElement, maxSize: number) => {
+        const { width, height } = sourceCanvas;
+        if (width <= maxSize && height <= maxSize) {
+          return sourceCanvas;
+        }
+
+        const scale = Math.min(maxSize / width, maxSize / height);
+        const resizedCanvas = document.createElement('canvas');
+        resizedCanvas.width = Math.round(width * scale);
+        resizedCanvas.height = Math.round(height * scale);
+        const resizedCtx = resizedCanvas.getContext('2d');
+        if (!resizedCtx) throw new Error('Unable to create resized canvas context');
+        resizedCtx.drawImage(sourceCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+        return resizedCanvas;
+      };
+
       // If requested, crop the canvas tightly around the highlighted area with some padding for context
       if (cropToHighlight) {
          const cropX = Math.max(0, x - padding);
@@ -68,13 +84,14 @@ export const renderPageToImage = async (
          if (croppedCtx) {
            // Draw the relevant slice of the full canvas onto the smaller canvas
            croppedCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-           return croppedCanvas.toDataURL('image/jpeg', 0.85); // Higher quality for smaller snippets
+           const resized = resizeCanvas(croppedCanvas, 1200);
+           return resized.toDataURL('image/jpeg', 0.75);
          }
       }
     }
     
-    // Return base64 string with slightly lower quality to avoid 413 Payload Too Large
-    return canvas.toDataURL('image/jpeg', 0.6);
+    const finalCanvas = resizeCanvas(canvas, 1200);
+    return finalCanvas.toDataURL('image/jpeg', 0.65);
   } catch (error) {
       console.error("Error rendering page to image:", error);
       throw error;

@@ -11,9 +11,10 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors() as any);
-// Increase limit for base64 images
-app.use(express.json({ limit: '50mb' }) as any);
-app.use(express.urlencoded({ limit: '50mb', extended: true }) as any);
+// Increase limit for large Base64 image payloads and make it configurable via env
+const jsonBodyLimit = process.env.JSON_BODY_LIMIT || '100mb';
+app.use(express.json({ limit: jsonBodyLimit }) as any);
+app.use(express.urlencoded({ limit: jsonBodyLimit, extended: true }) as any);
 
 // Static files for uploads
 const __filename = fileURLToPath(import.meta.url);

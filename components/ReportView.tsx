@@ -54,15 +54,41 @@ export const ReportView: React.FC<ReportViewProps> = ({ project, onClose }) => {
   const implemented = reportData.filter(d => d.ann.status === AnnotationStatus.IMPLEMENTED);
   const notImplemented = reportData.filter(d => d.ann.status === AnnotationStatus.NOT_IMPLEMENTED || d.ann.status === AnnotationStatus.PARTIAL);
 
+  const printReport = () => {
+    const element = document.querySelector('.print');
+    if (element) {
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      printWindow?.document.write(`
+        <html>
+          <head>
+            <title>Print Element</title>
+
+            <style>
+              body { margin: 0; font-family: Arial, sans-serif; }
+              .content { padding: 20px; }
+            </style>
+          </head>
+          <body>
+            ${element.innerHTML}
+          </body>
+          <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+        </html>
+      `);
+      printWindow?.document.close();
+      printWindow?.focus();
+      printWindow?.print();
+    }
+  };
+
   return (
-    <div className="bg-white p-8 max-w-5xl mx-auto h-full overflow-y-auto print:p-0">
+    <div className="print bg-white p-8 max-w-full mx-auto h-full overflow-visible print:p-0 print:max-w-full print:overflow-visible">
       <div className="flex justify-between items-center mb-8 pb-4 border-b print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Verification Report</h1>
           <p className="text-gray-500">Project ID: {project._id}</p>
         </div>
         <div className="space-x-3">
-          <Button onClick={() => window.print()} variant="outline" className="border-gray-300">🖨️ Print PDF</Button>
+          <Button onClick={printReport} variant="outline" className="border-gray-300">🖨️ Print PDF</Button>
           <Button onClick={onClose} className="bg-red-500 hover:bg-red-600 text-white">Close & Exit</Button>
         </div>
       </div>

@@ -22,6 +22,7 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalContainerRef = useRef<HTMLDivElement>(null);
+  const renderTaskRef = useRef<any>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [totalPages, setTotalPages] = useState(0);
   
@@ -45,7 +46,7 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
         const loadingTask = window.pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
         setPdfDoc(pdf);
-        setTotalPages(pdf.numPages);
+        setTotalPages(pdf.numPages); handleFitWidth();
       } catch (error) {
         console.error("Error loading PDF:", error);
       }
@@ -66,6 +67,15 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
 
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch (cancelError) {
+          // Ignore cancellation errors from an already finished render
+        }
+        renderTaskRef.current = null;
+      }
+
       if (context) {
         const outputScale = window.devicePixelRatio || 1;
         canvas.width = Math.floor(viewport.width * outputScale);
@@ -82,8 +92,10 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
           transform: transform,
           viewport: viewport,
         };
-        
-        await page.render(renderContext).promise;
+
+        renderTaskRef.current = page.render(renderContext);
+        await renderTaskRef.current.promise;
+        renderTaskRef.current = null;
         setIsRendered(true);
       }
     } catch (error) {
@@ -93,6 +105,16 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
 
   useEffect(() => {
     renderPage();
+
+    return () => {
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch (cancelError) {
+          // Ignore if already completed
+        }
+      }
+    };
   }, [pdfDoc, pageNumber, rotation, scale]);
 
   // Scroll active annotation into view
@@ -108,17 +130,24 @@ export const PdfViewer = forwardRef<HTMLDivElement, PdfViewerProps>(({
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3.0));
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.5));
   const handleFitWidth = () => {
-    if (internalContainerRef.current && viewportDetails) {
-        const containerW = internalContainerRef.current.clientWidth - 40;
-        const currentW = viewportDetails.width / scale; 
-        if (currentW > 0) {
-            setScale(containerW / currentW);
-        }
+    if (!internalContainerRef.current || !viewportDetails) return;
+    const containerW = Math.max(0, internalContainerRef.current.getBoundingClientRect().width - 40);
+    const pageWidth = viewportDetails.width / scale;
+    if (pageWidth > 0) {
+      setScale(containerW / pageWidth);
     }
   };
 
   const handleRotateLeft = () => setRotation(prev => (prev - 90 + 360) % 360);
   const handleRotateRight = () => setRotation(prev => (prev + 90) % 360);
+
+  useEffect(() => {
+    if (!viewportDetails) return;
+    const frame = window.requestAnimationFrame(() => {
+      handleFitWidth();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [viewportDetails, pageNumber]);
 
   const getAnnotationStyle = (rect: number[]) => {
     if (!viewportDetails) return { display: 'none' };

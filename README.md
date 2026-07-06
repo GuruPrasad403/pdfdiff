@@ -4,7 +4,7 @@ PDFDiff is a modern, full-stack application designed to automatically verify dev
 
 ## 🚀 Key Features
 
-- **Automated AI Verification:** Uses OpenRouter's Free Vision API (`nvidia/nemotron-nano-12b-v2-vl:free`) to visually compare snippets between document versions.
+- **Automated AI Verification:** Uses Hugging Face Inference Providers to visually compare snippets between document versions.
 - **Threaded Comment Extraction:** Seamlessly parses Adobe Acrobat comment threads. To prevent spam, the AI only verifies comments where a developer has explicitly replied with the word `"fixed"`.
 - **Lightning Fast AI Processing:** Extracts highly customized 1000px cropped image snippets instead of full pages to drop API payload sizes by 90% and parallelizes requests in chunks of 3 for instant Verification.
 - **Synchronized Visual Viewer:** Features a side-by-side, perfectly synced PDF scrolling viewer to manually inspect the old and new documents.
@@ -18,7 +18,7 @@ PDFDiff is a modern, full-stack application designed to automatically verify dev
 - **Frontend:** React, Vite, Tailwind CSS, PDF.js, modern React hooks.
 - **Backend:** Node.js, Express.js, `pdf-lib` (for extracting PDF metadata/annotations).
 - **Database:** MongoDB (via Mongoose) to track projects and persist verification status.
-- **AI Integration:** OpenAI compatible SDK pointing to OpenRouter's Vision models.
+- **AI Integration:** Hugging Face Inference Providers via the OpenAI-compatible router endpoint.
 
 ---
 
@@ -28,9 +28,9 @@ PDFDiff is a modern, full-stack application designed to automatically verify dev
 Make sure you have Node.js and MongoDB installed and running on your local machine.
 
 ### 1. Environment Variables
-Create a root `.env` file and populate it with your OpenRouter credentials and MongoDB URI:
+Create a root `.env` file and populate it with your Hugging Face credentials and MongoDB URI. Make sure this is a valid Hugging Face token created from https://huggingface.co/settings/tokens with `Make calls to Inference Providers` permissions:
 ```env
-OPENROUTER_API_KEY=sk-or-v1-...your-openrouter-key...
+HF_TOKEN=hf_xxx...your-huggingface-token...
 MONGODB_URI=mongodb://localhost:27017/pdfdiff
 ```
 

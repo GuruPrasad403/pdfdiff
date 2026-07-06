@@ -5,7 +5,7 @@ import { FeedbackList } from './components/FeedbackList';
 import { ReportView } from './components/ReportView';
 import { Annotation, Project, AnnotationStatus } from './types';
 import { renderPageToImage } from './services/pdfUtils';
-import { extractAnnotations } from './services/pdfExtract';
+import { extractAnnotations, getPdfPageCount } from './services/pdfExtract';
 import axios from 'axios';
 
 const API_URL = '/api';
@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [pageNumber, setPageNumber] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   
   // State for highlighting specific annotation
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
@@ -33,11 +34,22 @@ const App: React.FC = () => {
   const handleUpload = async () => {
     if (!oldFile || !newFile) return;
 
+    setUploadError('');
     setIsUploading(true);
     setStatusMessage("Extracting PDF annotations locally...");
     setUploadProgress(20);
 
     try {
+      const oldPageCount = await getPdfPageCount(oldFile);
+      const newPageCount = await getPdfPageCount(newFile);
+
+      if (oldPageCount !== newPageCount) {
+        setUploadError(`Page count mismatch: Old PDF has ${oldPageCount} pages, New PDF has ${newPageCount} pages.`);
+        setIsUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+
       // 1. Create fully local, instant object URLs (No server needed, no 4.5MB Vercel limits!)
       const oldPdfUrl = URL.createObjectURL(oldFile);
       const newPdfUrl = URL.createObjectURL(newFile);
@@ -83,12 +95,14 @@ const App: React.FC = () => {
 
      try {
         // Render images on client side
-        // We crop with 100px padding as requested by the user, drastically lowering the payload size vs full page
-        const oldImage = await renderPageToImage(project.oldPdfUrl, ann.pageNumber, ann.rect, true, 100);
+        // We crop with 1000px padding so the AI sees more surrounding alignment context.
+        const oldImage = await renderPageToImage(project.oldPdfUrl, ann.pageNumber, ann.rect, true, 1000);
         
         // We do NOT draw the box on the new image, so the AI compares "Boxed Content" vs "Clean Content".
-        const newImage = await renderPageToImage(project.newPdfUrl, ann.pageNumber, ann.rect, true, 100);
-
+        const newImage = await renderPageToImage(project.newPdfUrl, ann.pageNumber, ann.rect, true, 1000);
+        console.log("Old Image Data URL", oldImage);
+        console.log("New Image Data URL", newImage);
+        console.log('%c ', `font-size:200px; padding:200px; background:url(${newImage}) no-repeat center / contain;`);
         const response = await axios.post(`${API_URL}/compare`, {
             projectId: project._id,
             annotationId,
@@ -218,7 +232,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className={`flex-1 relative ${showReport ? 'overflow-auto' : 'overflow-hidden'}`}>
       {!project ? (
         <div className="absolute inset-0 flex items-center justify-center p-6 overflow-y-auto bg-gray-50/50">
           <div className="bg-white p-10 rounded-2xl shadow-xl max-w-2xl w-full border border-gray-100">
@@ -262,6 +276,12 @@ const App: React.FC = () => {
                   </label>
                 </div>
               </div>
+
+              {uploadError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 mb-4">
+                  <strong className="font-semibold">Upload blocked:</strong> {uploadError}
+                </div>
+              )}
 
               {isUploading && (
                 <div className="w-full bg-gray-100 rounded-full h-3 mb-4 overflow-hidden">

@@ -1,6 +1,12 @@
 import { PDFDocument } from 'pdf-lib';
 import { Annotation, AnnotationReply, AnnotationStatus } from '../types';
 
+export const getPdfPageCount = async (file: File): Promise<number> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdfDoc = await PDFDocument.load(arrayBuffer);
+  return pdfDoc.getPages().length;
+};
+
 export const extractAnnotations = async (file: File): Promise<Annotation[]> => {
   // Read file as ArrayBuffer in the browser
   const arrayBuffer = await file.arrayBuffer();
