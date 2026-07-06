@@ -29,6 +29,22 @@ export const renderPageToImage = async (
     canvas.width = viewport.width;
 
     await page.render({ canvasContext: context, viewport }).promise;
+
+    const resizeCanvas = (sourceCanvas: HTMLCanvasElement, maxSize: number) => {
+      const { width, height } = sourceCanvas;
+      if (width <= maxSize && height <= maxSize) {
+        return sourceCanvas;
+      }
+
+      const scale = Math.min(maxSize / width, maxSize / height);
+      const resizedCanvas = document.createElement('canvas');
+      resizedCanvas.width = Math.round(width * scale);
+      resizedCanvas.height = Math.round(height * scale);
+      const resizedCtx = resizedCanvas.getContext('2d');
+      if (!resizedCtx) throw new Error('Unable to create resized canvas context');
+      resizedCtx.drawImage(sourceCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+      return resizedCanvas;
+    };
     
     // Draw Annotation Highlight if rect is provided
     if (highlightRect && highlightRect.length === 4) {
@@ -52,22 +68,6 @@ export const renderPageToImage = async (
       // Semi-transparent fill
       context.fillStyle = 'rgba(255, 0, 0, 0.1)';
       context.fill();
-
-      const resizeCanvas = (sourceCanvas: HTMLCanvasElement, maxSize: number) => {
-        const { width, height } = sourceCanvas;
-        if (width <= maxSize && height <= maxSize) {
-          return sourceCanvas;
-        }
-
-        const scale = Math.min(maxSize / width, maxSize / height);
-        const resizedCanvas = document.createElement('canvas');
-        resizedCanvas.width = Math.round(width * scale);
-        resizedCanvas.height = Math.round(height * scale);
-        const resizedCtx = resizedCanvas.getContext('2d');
-        if (!resizedCtx) throw new Error('Unable to create resized canvas context');
-        resizedCtx.drawImage(sourceCanvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
-        return resizedCanvas;
-      };
 
       // If requested, crop the canvas tightly around the highlighted area with some padding for context
       if (cropToHighlight) {
