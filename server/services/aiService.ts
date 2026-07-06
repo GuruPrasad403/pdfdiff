@@ -392,15 +392,14 @@ Schema:
 
   let attempts = 0;
   const maxAttempts = 3;
-  let useInputImage = false;
+  let useInputImage = true;
   let modelIndex = 0;
-  let body = buildBody(modelCandidates[modelIndex], useInputImage);
 
   while (attempts < maxAttempts) {
     try {
-      body = buildBody(modelCandidates[modelIndex], useInputImage);
+      const body = buildBody(modelCandidates[modelIndex], useInputImage);
       console.log(`Hugging Face request body size: ${Buffer.byteLength(JSON.stringify(body), 'utf8')} bytes`);
-      console.log(`Using model candidate: ${modelCandidates[modelIndex]}`);
+      console.log(`Using model candidate: ${modelCandidates[modelIndex]} with useInputImage=${useInputImage}`);
       const response = await fetch(HUGGINGFACE_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -446,6 +445,21 @@ Schema:
               status: 'PARTIAL',
               confidence: 0.0,
               reason: 'Image data was rejected by AI service (invalid image format or unsupported multimodal shape).',
+            };
+          }
+          await delay(1000);
+          continue;
+        }
+
+        if ((status === 400 || status === 422) && !useInputImage) {
+          console.warn('Hugging Face returned 400/422 on image_url shape; retrying with input_image shape');
+          useInputImage = true;
+          attempts += 1;
+          if (attempts >= maxAttempts) {
+            return {
+              status: 'PARTIAL',
+              confidence: 0.0,
+              reason: 'Image data was rejected by AI service (too large or invalid format).',
             };
           }
           await delay(1000);

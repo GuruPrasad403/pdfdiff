@@ -84,14 +84,14 @@ export const renderPageToImage = async (
          if (croppedCtx) {
            // Draw the relevant slice of the full canvas onto the smaller canvas
            croppedCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-           const resized = resizeCanvas(croppedCanvas, 1200);
-           return resized.toDataURL('image/jpeg', 0.75);
+           const resized = resizeCanvas(croppedCanvas, 1000);
+           return resized.toDataURL('image/jpeg', 0.7);
          }
       }
     }
     
-    const finalCanvas = resizeCanvas(canvas, 1200);
-    return finalCanvas.toDataURL('image/jpeg', 0.65);
+    const finalCanvas = resizeCanvas(canvas, 1000);
+    return finalCanvas.toDataURL('image/jpeg', 0.6);
   } catch (error) {
       console.error("Error rendering page to image:", error);
       throw error;
