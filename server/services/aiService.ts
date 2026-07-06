@@ -57,8 +57,11 @@ export const analyzeDifference = async (
     throw new Error('Missing Hugging Face API key. Set HF_TOKEN in your .env file.');
   }
 
-  const MODEL_NAME = process.env.HF_MODEL || 'CohereLabs/command-a-vision-07-2025:fastest';
-  const MODEL_FALLBACKS = (process.env.HF_MODEL_FALLBACKS || 'zai-org/GLM-4.5V-FP8:fastest').split(',').map(m => m.trim()).filter(Boolean);
+  const MODEL_NAME = process.env.HF_MODEL || 'Qwen/Qwen3.6-27B:ovhcloud';
+  const MODEL_FALLBACKS = (process.env.HF_MODEL_FALLBACKS || 'Qwen/Qwen3.6-27B:deepinfra,Qwen/Qwen3.5-9B:ovhcloud,Qwen/Qwen3.5-9B:deepinfra,google/gemma-3-4b-it:deepinfra')
+    .split(',')
+    .map(m => m.trim())
+    .filter(Boolean);
   const modelCandidates = [MODEL_NAME, ...MODEL_FALLBACKS.filter(m => m !== MODEL_NAME)];
   console.log(`Hugging Face API Key set; using model candidates ${modelCandidates.join(', ')}`);
 
@@ -345,50 +348,44 @@ Schema:
 }
 `;
 
-  const buildBody = (model: string, useInputImage: boolean) => ({
-    model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: prompt },
-          ...(
-            useInputImage
-              ? [
-                  {
-                    type: 'input_image',
-                    image_url: {
-                      url: `data:image/jpeg;base64,${cleanOld}`,
-                    },
-                  },
-                  {
-                    type: 'input_image',
-                    image_url: {
-                      url: `data:image/jpeg;base64,${cleanNew}`,
-                    },
-                  },
-                ]
-              : [
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:image/jpeg;base64,${cleanOld}`,
-                    },
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:image/jpeg;base64,${cleanNew}`,
-                    },
-                  },
-                ]
-          ),
-        ],
-      },
-    ],
-    temperature: 0.1,
-    max_tokens: 1000,
-  });
+  const buildBody = (model: string, useInputImage: boolean) => {
+    const attachments = useInputImage
+      ? [
+          {
+            type: 'input_image',
+            image_url: `data:image/jpeg;base64,${cleanOld}`,
+          },
+          {
+            type: 'input_image',
+            image_url: `data:image/jpeg;base64,${cleanNew}`,
+          },
+        ]
+      : [
+          {
+            type: 'image_url',
+            image_url: `data:image/jpeg;base64,${cleanOld}`,
+          },
+          {
+            type: 'image_url',
+            image_url: `data:image/jpeg;base64,${cleanNew}`,
+          },
+        ];
+
+    return {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+          ],
+          attachments,
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 1000,
+    };
+  };
 
   let attempts = 0;
   const maxAttempts = 3;
@@ -411,8 +408,13 @@ Schema:
 
       const responseText = await response.text();
       if (!response.ok) {
-        const parsed = responseText ? JSON.parse(responseText) : null;
-        const errorMessage = parsed?.error?.message || response.statusText;
+        let errorMessage: string | null = response.statusText;
+        try {
+          const parsed = responseText ? JSON.parse(responseText) : null;
+          errorMessage = parsed?.error?.message || parsed?.error || response.statusText;
+        } catch {
+          errorMessage = responseText || response.statusText;
+        }
         const status = response.status;
 
         console.error(`Hugging Face response error ${status}:`, responseText);
@@ -433,6 +435,53 @@ Schema:
             throw new Error(`Rate limited after ${attempts} attempts: ${errorMessage}`);
           }
           await delay(2000 * attempts);
+          continue;
+        }
+
+        const unsupportedModel =
+          !!errorMessage &&
+          (
+            errorMessage.includes('model_not_supported') ||
+            errorMessage.includes('model_not_found') ||
+            errorMessage.includes('Could not find model') ||
+            errorMessage.includes('could not find any provider') ||
+            errorMessage.includes('not supported by any provider')
+          );
+        if (unsupportedModel) {
+          if (modelIndex < modelCandidates.length - 1) {
+            console.warn('Hugging Face model unsupported, trying next candidate:', modelCandidates[modelIndex + 1]);
+            modelIndex += 1;
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+              return {
+                status: 'PARTIAL',
+                confidence: 0.0,
+                reason: `Hugging Face model unsupported: ${modelCandidates[modelIndex]}. Please set HF_MODEL to a supported vision model or enable the model provider in Hugging Face settings.`,
+              };
+            }
+            await delay(1000);
+            continue;
+          }
+
+          return {
+            status: 'PARTIAL',
+            confidence: 0.0,
+            reason: `Hugging Face model unsupported: ${modelCandidates[modelIndex]}. Please set HF_MODEL to a supported vision model or enable the model provider in your Hugging Face account.`,
+          };
+        }
+
+        if (status === 500 && modelIndex < modelCandidates.length - 1) {
+          console.warn('Hugging Face internal server error, trying next model candidate:', modelCandidates[modelIndex + 1]);
+          modelIndex += 1;
+          attempts += 1;
+          if (attempts >= maxAttempts) {
+            return {
+              status: 'PARTIAL',
+              confidence: 0.0,
+              reason: `Hugging Face internal server error for ${modelCandidates[modelIndex]}. Please try a different HF_MODEL provider or reduce image payload size.`,
+            };
+          }
+          await delay(1000);
           continue;
         }
 
